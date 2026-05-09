@@ -1,3 +1,12 @@
+// ==================== Security Utilities ====================
+function sanitizeHtml(html) {
+    return html
+        .replace(/<script[\s\S]*?<\/script>/gi, '')
+        .replace(/on\w+\s*=\s*"[^"]*"/gi, '')
+        .replace(/on\w+\s*=\s*'[^']*'/gi, '')
+        .replace(/javascript\s*:/gi, '');
+}
+
 // ==================== State Management ====================
 // Changed to let to allow state restoration
 let state = {
@@ -514,7 +523,7 @@ function renderDraft(data) {
         .replace(/---/g, '<hr>')
         .replace(/\n/g, '<br>');
 
-    document.getElementById('draft-content').innerHTML = htmlContent;
+    document.getElementById('draft-content').innerHTML = sanitizeHtml(htmlContent);
 
     // Set the official URL for the apply button (use subsidy-specific URL, not jGrants)
     const applyLink = document.getElementById('official-apply-link');
@@ -1342,10 +1351,10 @@ function addChatMessage(role, content) {
 }
 
 function formatChatMessage(content) {
-    // 簡易的なマークダウン変換
-    return content
+    const converted = content
         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
         .replace(/\n/g, '<br>');
+    return sanitizeHtml(converted);
 }
 
 function showTypingIndicator() {

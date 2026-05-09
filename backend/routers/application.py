@@ -1,9 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List
 
-import sys
-sys.path.append('..')
 from database import get_db
 from models import ApplicationHistory, UserProfile, SubsidyMaster
 from schemas import (
@@ -164,16 +162,18 @@ def generate_draft(request: DraftGenerateRequest, db: Session = Depends(get_db))
 @router.get("/history/{user_id}", response_model=List[ApplicationResponse])
 def get_user_applications(user_id: int, db: Session = Depends(get_db)):
     """ユーザーの申請履歴を取得"""
-    applications = db.query(ApplicationHistory).filter(
-        ApplicationHistory.user_id == user_id
-    ).order_by(ApplicationHistory.created_at.desc()).all()
-    
+    applications = (
+        db.query(ApplicationHistory)
+        .options(joinedload(ApplicationHistory.subsidy))
+        .filter(ApplicationHistory.user_id == user_id)
+        .order_by(ApplicationHistory.created_at.desc())
+        .all()
+    )
+
     result = []
     for app in applications:
-        subsidy = db.query(SubsidyMaster).filter(SubsidyMaster.id == app.subsidy_id).first()
-        # 手動入力名があれば優先、なければマスタ名
+        subsidy = app.subsidy
         display_name = app.manual_subsidy_name if app.manual_subsidy_name else (subsidy.name if subsidy else None)
-        
         result.append(ApplicationResponse(
             id=app.id,
             user_id=app.user_id,
@@ -186,7 +186,7 @@ def get_user_applications(user_id: int, db: Session = Depends(get_db)):
             created_at=app.created_at,
             official_url=subsidy.official_url if subsidy else None
         ))
-    
+
     return result
 
 

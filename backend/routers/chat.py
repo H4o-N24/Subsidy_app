@@ -2,10 +2,13 @@
 AIチャット相談APIルーター
 OpenAI APIを使用して補助金に関する相談に回答
 """
+import logging
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
 import os
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/chat", tags=["AIチャット"])
 
@@ -72,8 +75,8 @@ async def chat_with_ai(request: ChatRequest):
                 mock=False
             )
         except Exception as e:
-            print(f"OpenAI API error: {e}")
-            # フォールバックとしてモック応答を返す
+            logger.error("OpenAI チャット API エラー: %s", e)
+            logger.warning("モック応答にフォールバックします。")
     
     # モック応答（OpenAI APIキーがない場合）
     mock_response = generate_mock_response(user_message)

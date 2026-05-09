@@ -1,15 +1,22 @@
+import logging
 import os
 from openai import OpenAI
+
+logger = logging.getLogger(__name__)
+
+MODEL_NAME = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
 
 class AIService:
     """AI事業計画書生成サービス"""
-    
+
     def __init__(self):
         self.api_key = os.getenv("OPENAI_API_KEY")
         self.client = None
         if self.api_key:
             self.client = OpenAI(api_key=self.api_key)
+        else:
+            logger.warning("OPENAI_API_KEY が設定されていません。モックドラフトを使用します。")
     
     def generate_business_plan_draft(
         self,
@@ -76,7 +83,7 @@ class AIService:
         if self.client:
             try:
                 response = self.client.chat.completions.create(
-                    model="gpt-4o-mini",
+                    model=MODEL_NAME,
                     messages=[
                         {"role": "system", "content": "あなたは補助金申請書類の作成を支援する専門家です。論理的で説得力のある事業計画書を作成してください。"},
                         {"role": "user", "content": prompt}
@@ -86,6 +93,8 @@ class AIService:
                 )
                 return response.choices[0].message.content
             except Exception as e:
+                logger.error("OpenAI API エラー (generate_business_plan_draft): %s", e)
+                logger.warning("モックドラフトにフォールバックします。")
                 return self._generate_mock_draft(business_name, industry, subsidy_name, plan_details)
         else:
             return self._generate_mock_draft(business_name, industry, subsidy_name, plan_details)
@@ -208,7 +217,7 @@ class AIService:
         if self.client:
             try:
                 response = self.client.chat.completions.create(
-                    model="gpt-4o-mini",
+                    model=MODEL_NAME,
                     messages=[
                         {"role": "system", "content": "あなたは優秀な中小企業診断士です。ユーザーの事業計画書をブラッシュアップしてください。"},
                         {"role": "user", "content": prompt}
@@ -218,6 +227,8 @@ class AIService:
                 )
                 return response.choices[0].message.content
             except Exception as e:
+                logger.error("OpenAI API エラー (refine_business_plan): %s", e)
+                logger.warning("モック添削にフォールバックします。")
                 return self._generate_mock_refinement(subsidy_name, current_text)
         else:
             return self._generate_mock_refinement(subsidy_name, current_text)
